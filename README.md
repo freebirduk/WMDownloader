@@ -14,7 +14,7 @@ Weather Underground (WU) website and, later to analyse that historical data. Why
 
 So Weather Manager will provide:
 
-- WMDownloader - A program to access the WU API, retrieve and store your PWS data in a SQL database (MariaDb or other).
+- WMDownloader - A program to access the WU API, retrieve and store your PWS data in a SQL database (SQL Server Express or other).
 - WMPresenter - A weather offering analysis of the observations in your database. This will include the sort of 
   thing found in WU plus other analyses such as extremes e.g. "hottest March ever".
 
@@ -48,7 +48,7 @@ yesterday a more complete dataset is achieved.
 - Run the DatabaseInitialBuild.sql script on a MariaDb server to build the data repository. You can also use 
   DatabaseAddUser.sql to add a user.
 - Rename the config-ChangeMe.ini file to config.ini
-- Amend the values in config.ini to store your MariaDb server details, Weather Underground API credentials and 
+- Amend the values in config.ini to store your SQL Server details, Weather Underground API credentials and 
   e-mail credential. *These will not be encrypted so use caution as to where you locate things.*
 
 ### Coming next:

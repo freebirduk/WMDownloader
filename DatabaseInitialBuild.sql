@@ -2,25 +2,18 @@
 /* Creates the database and table structure */
 /* Requires root access to the database */
 
-/* WARNING!! IF YOU ALREADY HAVE A DATABASE IN PLACE THIS WILL */
-/* COMPLETELY DELETE IT - Backup your data first */
-
-/* Create the database */
-DROP DATABASE IF EXISTS weathermanager;
-CREATE DATABASE weathermanager;
-
-USE weathermanager;
+USE weathermanagertest;
 
 /* Add tables */
 CREATE TABLE Observations(
-	ObservationId INT AUTO_INCREMENT PRIMARY KEY,
+	ObservationId INT PRIMARY KEY IDENTITY(1,1),
 	ObservationTime DATETIME NOT NULL,
-	SolarRadiationHigh DECIMAL(5,1) UNSIGNED NOT NULL,
-	UvHigh DECIMAL(4,1) UNSIGNED NOT NULL,
-	WindDirectionMean DECIMAL(3) UNSIGNED NOT NULL,
-	HumidityHigh TINYINT UNSIGNED NOT NULL,
-	HumidityLow TINYINT UNSIGNED NOT NULL,
-	HumidityMean DECIMAL(4,1) UNSIGNED NOT NULL,
+	SolarRadiationHigh DECIMAL(5,1) NOT NULL CHECK(SolarRadiationHigh >= 0),
+	UvHigh DECIMAL(4,1) NOT NULL CHECK(UvHigh >= 0),
+	WindDirectionMean DECIMAL(3) NOT NULL CHECK(WindDirectionMean >= 0),
+	HumidityHigh TINYINT NOT NULL CHECK(HumidityHigh >= 0),
+	HumidityLow TINYINT NOT NULL CHECK(HumidityLow>=0),
+	HumidityMean DECIMAL(4,1) NOT NULL CHECK(HumidityMean>= 0),
 	TemperatureHigh DECIMAL(3,1) NOT NULL,
 	TemperatureLow DECIMAL(3,1) NOT NULL,
 	TemperatureMean DECIMAL(3,1) NOT NULL,
@@ -39,22 +32,20 @@ CREATE TABLE Observations(
 	HeatIndexHigh DECIMAL(3,1) NOT NULL,
 	HeatIndexLow DECIMAL(3,1) NOT NULL,
 	HeatIndexMean DECIMAL(3,1) NOT NULL,
-	PressureHigh DECIMAL(6,2) UNSIGNED NOT NULL,
-	PressureLow DECIMAL(6,2) UNSIGNED NOT NULL,
+	PressureHigh DECIMAL(6,2) NOT NULL CHECK(PressureHigh >= 0),
+	PressureLow DECIMAL(6,2) NOT NULL CHECK(PressureLow >= 0),
 	PressureTrend DECIMAL(4,2),
-	PrecipitationRate DECIMAL(5,2) UNSIGNED NOT NULL,
-	PrecipitationTotal DECIMAL(5,2) UNSIGNED NOT NULL
-);
+	PrecipitationRate DECIMAL(5,2) NOT NULL CHECK(PrecipitationRate >= 0),
+	PrecipitationTotal DECIMAL(5,2) NOT NULL CHECK(PrecipitationTotal >= 0)
+)
 
-CREATE TABLE `extremes` (
-	`extremeId` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-	`Name` VARCHAR(50) NOT NULL COMMENT 'Description of extreme',
-	`Date` DATETIME NOT NULL COMMENT 'Date on which the extreme occurred',
-	`Rank` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '1 = 1st etc',
-	`HighInt` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Highest integer of the extreme',
-	`LowInt` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Lowest integer of the extreme',
-	`HighFloat` FLOAT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Highest float of the extreme',
-	`LowFloat` FLOAT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Lowest float of the extreme',
-	PRIMARY KEY (`extremeId`) USING BTREE,
-	UNIQUE INDEX `Name` (`Name`)
+CREATE TABLE Extremes (
+	extremeId INT PRIMARY KEY IDENTITY(1,1),
+	Name VARCHAR(50) NOT NULL, -- Description of extreme
+	Date DATETIME NOT NULL, -- Date on which the extreme occurred
+	Rank TINYINT NOT NULL DEFAULT 0 CHECK(Rank >= 0), -- 1 = 1st etc
+	HighInt INT NOT NULL DEFAULT 0 CHECK(HighInt >= 0), -- Highest integer of the extreme
+	LowInt INT NOT NULL DEFAULT 0 CHECK(LowInt >= 0), -- Lowest integer of the extreme
+	HighFloat FLOAT NOT NULL DEFAULT 0 CHECK(HighFloat >= 0), -- Highest float of the extreme
+	LowFloat FLOAT NOT NULL DEFAULT 0 CHECK(LowFloat >= 0) -- Lowest float of the extreme
 )

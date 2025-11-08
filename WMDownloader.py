@@ -53,9 +53,6 @@ error_service = WMErrorService(_config.get("EMail", "Host"),
                                _config.get("EMail", "ToName"))
 
 database_service = WMDatabaseService(_config.get("Database", "IPAddress"),
-                                     _config.get("Database", "Port"),
-                                     _config.get("Database", "UserId"),
-                                     _config.get("Database", "Password"),
                                      _config.get("Database", "DatabaseName"),
                                      error_service)
 
