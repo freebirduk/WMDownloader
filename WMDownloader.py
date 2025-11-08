@@ -33,7 +33,7 @@ if not os.path.isfile(command_line_arguments.ConfigFile):
 
 
 # Get configuration
-_config = configparser.ConfigParser()
+_config = configparser.ConfigParser(interpolation=None)
 _config.read(command_line_arguments.ConfigFile)
 if _config is None:
     winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS)

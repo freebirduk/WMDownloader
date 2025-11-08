@@ -3,7 +3,7 @@ import sqlalchemy.orm
 from datetime import date
 from datetime import datetime
 from IWMDatabaseService import IWMDatabaseService
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, MetaData, Table
 from sqlalchemy import exc
 from sqlalchemy.ext.automap import automap_base
 
@@ -23,8 +23,47 @@ class WMDatabaseService(IWMDatabaseService):
 
             self.engine = create_engine(f"mariadb+mariadbconnector://{username}:{password}@{url}:{port}/{dbname}")
 
+            # First, check what tables exist using raw metadata
+            metadata = MetaData()
+            metadata.reflect(bind=self.engine)
+            raw_table_names = list(metadata.tables.keys())
+
             self.base.prepare(self.engine, reflect=True)
-            self.observations = self.base.classes.observations
+
+            # Check if an "observations" table exists in reflected tables
+            available_tables = list(self.base.classes.keys())
+
+            if not available_tables:
+                # Tables exist but automap couldn't map them
+                if raw_table_names:
+                    raw_tables_str = ", ".join(raw_table_names)
+                    self._error_service.handle_error(
+                        f"Database {dbname} contains tables ({raw_tables_str}) but SQLAlchemy automap could not reflect them. "
+                        f"This typically means the 'Observations' table is missing a PRIMARY KEY constraint. "
+                        f"Please add a PRIMARY KEY to the Observations table (e.g., ALTER TABLE Observations ADD PRIMARY KEY (ObservationTime);)",
+                        "Error", send_email=True, terminate=True)
+                else:
+                    self._error_service.handle_error(
+                        f"No tables found in database {dbname}. Please ensure the database is initialized with the required schema.",
+                        "Error", send_email=True, terminate=True)
+
+            # Try to find the "observations" table (case-insensitive)
+            observations_table = None
+            for table_name in available_tables:
+                if table_name.lower() == 'observations':
+                    observations_table = table_name
+                    break
+
+            if observations_table is None:
+                available_tables_str = ", ".join(available_tables)
+                self._error_service.handle_error(
+                    f"Table 'observations' not found in database {dbname}. "
+                    f"Available tables: {available_tables_str}. "
+                    f"Please run DatabaseInitialBuild.sql to create the required schema.",
+                    "Error", send_email=True, terminate=True)
+
+            # Use the actual table name from the database
+            self.observations = getattr(self.base.classes, observations_table)
 
         except sqlalchemy.exc.TimeoutError:
 
@@ -36,11 +75,18 @@ class WMDatabaseService(IWMDatabaseService):
             self._error_service.handle_error(f"Database access error: {ex}",
                                              "Error", send_email=True, terminate=True)
 
+        except AttributeError as ex:
+
+            self._error_service.handle_error(
+                f"Failed to map database table: {ex}. "
+                f"Please verify the database schema is correctly initialized.",
+                "Error", send_email=True, terminate=True)
+
     def dispose(self):
         self.engine.dispose()
 
-    # Gets the date of the  most recent observation from the observations table.
-    # If there are no observations then the default observation date is returned.
+    # Gets the date of the most recent observation from the "observations" table.
+    # If there are no observations, then the default observation date is returned.
     def get_most_recent_observation_date(self, default_observation_date: date):
 
         try:
