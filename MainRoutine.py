@@ -1,10 +1,10 @@
 # Main logic for importing Weather Underground PWS data and adding it to the Weather Manager database.
 # Will import all observations not yet downloaded up until yesterday's date.
 
-import IDateTimeProvider
-import IWMDatabaseService
-import IWMErrorService
-import IWeatherUndergroundApiService
+from IDateTimeProvider import IDateTimeProvider
+from IWMDatabaseService import IWMDatabaseService
+from IWMErrorService import IWMErrorService
+from IWeatherUndergroundApiService import IWeatherUndergroundApiService
 import logging
 from WuApiException import WuApiException
 from datetime import date
@@ -24,12 +24,12 @@ def _configure_logging(log_file_full_name: str):
 
 
 class MainRoutine:
-    _api_throttling_limit = None
-    _database_service = None
-    _date_time_provider = None
+    _api_throttling_limit: str
+    _database_service: IWMDatabaseService
+    _date_time_provider: IDateTimeProvider
     _initial_observation_date = None
-    _wm_error_service = None
-    _wu_api_service: IWeatherUndergroundApiService = None
+    _wm_error_service: IWMErrorService
+    _wu_api_service: IWeatherUndergroundApiService
 
     def __init__(self,
                  wm_database_service: IWMDatabaseService,
@@ -52,15 +52,18 @@ class MainRoutine:
         self._initial_observation_date = initial_observation_date
 
     # The controlling method that is called to drive the download of recent observations
-    def download_recent_observations(self):
+    def download_recent_observations(self) -> None:
 
         self._not_currently_gathering_data_warner()
+
+        if self._initial_observation_date is None:
+            raise ValueError("Initial observation date is not configured")
 
         _initial_observation_date = datetime.strptime(self._initial_observation_date, '%Y-%m-%d').date()
         _most_recent_observation_date: date = \
             self._database_service.get_most_recent_observation_date(_initial_observation_date)
 
-        # We only fetch observations for up to TWO days ago, not up to yesterday. This is because the Weather
+        # We only get observations from up to TWO days ago, not up to yesterday. This is because the Weather
         # Underground API is sometimes slow in providing the full set of observations for yesterday.
         _fetch_up_to_date = self._apply_api_throttling_limit(self._date_time_provider.now() -
                                                              timedelta(days=2),
@@ -73,7 +76,7 @@ class MainRoutine:
 
         self._wm_error_service.finalise_error_handling()
 
-    # To avoid tripping the Weather Underground API throttling limit this will restrict the number of
+    # To avoid tripping the Weather Underground API throttling limit, this will restrict the number of
     # recent observations downloaded to the value set in the config file. Outstanding observations will
     # get downloaded on subsequent days.
     def _apply_api_throttling_limit(self, yesterdays_date: date, most_recent_observation_date: date):
@@ -111,7 +114,7 @@ class MainRoutine:
 
             self._wm_error_service.handle_error(str(ex), "Critical", send_email=True, terminate=True, exc_info=ex)
 
-    # Repeatedly call the Weather Underground API to obtain recent observations
+    # Repeatedly call the Weather Underground API to fetch recent observations
     def _retrieve_recent_observations(self, most_recent_observation_date: date, fetch_up_to_date: date):
 
         _observation_list = []
@@ -139,6 +142,6 @@ class MainRoutine:
 
         except WuApiException as ex:
 
-            self._wm_error_service.handle_error(ex, "Critical", send_email=True, terminate=True)
+            self._wm_error_service.handle_error(str(ex), "Critical", send_email=True, terminate=True)
 
         return _observation_list

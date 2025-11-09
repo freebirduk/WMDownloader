@@ -1,19 +1,22 @@
-import IWMErrorService
+import sys
+
 import sqlalchemy.orm
 from datetime import date
 from datetime import datetime
 from IWMDatabaseService import IWMDatabaseService
-from sqlalchemy import create_engine, func, MetaData, Table
+from IWMErrorService import IWMErrorService
+from sqlalchemy import create_engine, func, MetaData
 from sqlalchemy import exc
 from sqlalchemy.ext.automap import automap_base
+from typing import Any
 
 
 # Service to handle all interactions with the Weather Manager database
 class WMDatabaseService(IWMDatabaseService):
     engine = None
-    _error_service = None
+    _error_service: IWMErrorService
     base = automap_base()
-    observations = None
+    observations: Any = None
 
     def __init__(self, url, port, username, password, dbname, error_service: IWMErrorService):
 
@@ -34,7 +37,7 @@ class WMDatabaseService(IWMDatabaseService):
             available_tables = list(self.base.classes.keys())
 
             if not available_tables:
-                # Tables exist but automap couldn't map them
+                # Tables exist, but automap couldn't map them
                 if raw_table_names:
                     raw_tables_str = ", ".join(raw_table_names)
                     self._error_service.handle_error(
@@ -62,6 +65,9 @@ class WMDatabaseService(IWMDatabaseService):
                     f"Please run DatabaseInitialBuild.sql to create the required schema.",
                     "Error", send_email=True, terminate=True)
 
+            # At this point, observations_table is guaranteed to be a string (not None)
+            assert observations_table is not None, "observations_table should not be None at this point"
+
             # Use the actual table name from the database
             self.observations = getattr(self.base.classes, observations_table)
 
@@ -87,13 +93,13 @@ class WMDatabaseService(IWMDatabaseService):
 
     # Gets the date of the most recent observation from the "observations" table.
     # If there are no observations, then the default observation date is returned.
-    def get_most_recent_observation_date(self, default_observation_date: date):
+    def get_most_recent_observation_date(self, default_observation_date: date) -> date:
 
         try:
 
-            session = sqlalchemy.orm.sessionmaker()
-            session.configure(bind=self.engine)
-            session = session()
+            session_factory = sqlalchemy.orm.sessionmaker()
+            session_factory.configure(bind=self.engine)
+            session = session_factory()
             result: datetime = session.query(func.max(self.observations.ObservationTime)).scalar()
             session.close()
 
@@ -106,6 +112,7 @@ class WMDatabaseService(IWMDatabaseService):
 
             self._error_service.handle_error(f"Database access error while getting most recent observation date: {ex}",
                                              "Error", send_email=True, terminate=True)
+            sys.exit(1)
 
     # Saves observations to the database. Observations are provided as a list of hourly
     # observations for a multiple of days. These need to be reformatted before writing.
