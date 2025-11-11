@@ -3,7 +3,6 @@ import configparser
 import os
 import sys
 import traceback
-import winsound
 from DateTimeProvider import DateTimeProvider
 from MainRoutine import MainRoutine
 from WeatherUndergroundApiService import WeatherUndergroundApiService
@@ -36,7 +35,6 @@ if not os.path.isfile(command_line_arguments.ConfigFile):
 _config = configparser.ConfigParser(interpolation=None)
 _config.read(command_line_arguments.ConfigFile)
 if _config is None:
-    winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS)
     print(f"Could not read the configuration file config.ini in {os.getcwd()}")
     input("Press return to continue")
     sys.exit()
